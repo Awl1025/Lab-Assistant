@@ -1,0 +1,16 @@
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Chroma / vector DB artifacts
+chroma_db/
+*.sqlite3
+
+# OS / editor
+.DS_Store
+.vscode/
