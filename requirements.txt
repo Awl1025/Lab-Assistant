@@ -1,7 +1,8 @@
 langchain
-langchain-core
-langchain-community
 langchain-chroma
-chromadb
+langchain-community
 langchain-google-genai
+chromadb
 python-dotenv
+opencv-python
+mediapipe<=0.10.14

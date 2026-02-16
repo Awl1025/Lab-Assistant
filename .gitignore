@@ -1,16 +1,14 @@
-# Secrets
+# virtual environment
 .env
-
-# Python
-__pycache__/
-*.pyc
 .venv/
+env/
 venv/
+*.env
 
-# Chroma / vector DB artifacts
+# chromaDB
 chroma_db/
-*.sqlite3
+.chroma/
 
-# OS / editor
-.DS_Store
-.vscode/
+# python & cache
+__pycache__/
+.pytest_cache/
