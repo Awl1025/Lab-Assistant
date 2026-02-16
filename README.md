@@ -6,7 +6,7 @@ verify results. It will be an acting proofreader of lab imagery to ensure work a
 
 ### Provider Choice: 
 
-**Generation:** Google Gemini (gemini-2.0-flash)
+**Generation:** Google Gemini (gemini-3.0-flash)
 
 **Embeddings:** Google Gemini (text-embedding-004)
 
