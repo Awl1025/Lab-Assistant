@@ -1,0 +1,14 @@
+# virtual environment
+.env
+.venv/
+env/
+venv/
+*.env
+
+# chromaDB
+chroma_db/
+.chroma/
+
+# python & cache
+__pycache__/
+.pytest_cache/
