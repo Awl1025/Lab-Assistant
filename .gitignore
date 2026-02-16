@@ -8,7 +8,13 @@ venv/
 # chromaDB
 chroma_db/
 .chroma/
+*.sqlite3
 
 # python & cache
 __pycache__/
 .pytest_cache/
+*.pyc
+
+# OS / editor
+.DS_Store
+.vscode/
