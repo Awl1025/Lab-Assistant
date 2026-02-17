@@ -3,7 +3,10 @@ langchain-core
 langchain-chroma
 langchain-community
 langchain-google-genai
+langchain-text-splitters
 chromadb
+datasets
+tiktoken
 python-dotenv
 opencv-python
 mediapipe<=0.10.14
