@@ -8,7 +8,7 @@ verify results. It will be an acting proofreader of lab imagery to ensure work a
 
 **Generation:** Google Gemini (gemini-2.0-flash)
 
-**Embeddings:** Google Gemini (text-embedding-004)
+**Embeddings:** Google Gemini (gemini-embedding-001)
 
 **Vision (if needed):** Google Gemini (gemini-2.0-flash)
 
