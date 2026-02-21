@@ -3,18 +3,17 @@ from itertools import islice
 from dotenv import load_dotenv
 from datasets import load_dataset
 
-from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
 from langchain_core.messages import HumanMessage
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_huggingface import HuggingFaceEmbeddings
 
 PERSIST_DIR = "./chroma_db_pes2ox"
-
-# Chunking settings (token-approx)
 CHUNK_SIZE_TOKENS = 800
 CHUNK_OVERLAP_TOKENS = 120 
-N_PAPERS = 100
+N_PER_DATASET = 1000
 
 
 def build_splitter():
@@ -24,72 +23,67 @@ def build_splitter():
         separators=["\n\n", "\n", ". ", " ", ""],
     )
 
-def load_pes2ox_docs_streaming(n_papers: int, splitter: RecursiveCharacterTextSplitter):
-    ds = load_dataset("laion/Pes2oX-fulltext", split="train", streaming=True)
-
-    docs = []
-    for row in islice(ds, n_papers):
-        title = row.get("title") or ""
-        text = row.get("text") or ""
-        paper_id = row.get("id")
-        source = row.get("source")
-        version = row.get("version")
-        created = row.get("created")
-        added = row.get("added")
-
-        if not text.strip():
-            continue
-
-        # Split full text into structure-aware chunks
-        chunks = splitter.split_text(text)
-        for i, chunk in enumerate(chunks):
-            docs.append(
-                Document(
-                    page_content=chunk,
-                    metadata={
-                        "paper_id": paper_id,
-                        "title": title,
-                        "source": source,
-                        "version": version,
-                        "created": created,
-                        "added": added,
-                        "chunk_index": i,
-                    },
-                )
-            )
-
-    return docs
-
-
 def check_llm():
-    print("\n--- 1. Testing Gemini Connection ---")
+    print("\nTesting Gemini Connection")
     llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0)
     res = llm.invoke("Infrastructure check: Are you online?")
     print(f"Gemini Response: {res.content}")
 
 def run_vector_proof():
-    print("\n--- 2. Testing Vector Database (Chroma) using Pes2oX + chunking ---")
+    print("\n Building Vector Store")
     splitter = build_splitter()
-    embeddings = GoogleGenerativeAIEmbeddings(model="gemini-embedding-001")
+    embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+    db = Chroma( persist_directory=PERSIST_DIR, embedding_function=embeddings)
 
-    print(f"Streaming first {N_PAPERS} papers from Pes2oX...")
-    docs = load_pes2ox_docs_streaming(N_PAPERS, splitter)
-    print(f"Built {len(docs)} chunk-documents.")
-    if not docs:
-        raise RuntimeError("No documents created—dataset rows may be empty or filtered out.")
-    db = Chroma.from_documents(docs, embeddings, persist_directory=PERSIST_DIR)
+    # Pes2oX dataset is smaller and more consistent, so we can stream and add in one pass
+    print(f"Streaming {N_PER_DATASET} Pes2oX papers")
+    ds1 = load_dataset("laion/Pes2oX-fulltext", split="train", streaming=True)
+    for row in islice(ds1, N_PER_DATASET):
+        text = row.get("text") or ""
+        if not text.strip():
+            continue
+        chunks = splitter.split_text(text)
+        documents = [
+            Document(
+                page_content=c,
+                metadata={
+                    "dataset": "Pes2oX",
+                    "paper_id": row.get("id"),
+                }
+            )
+            for c in chunks
+        ]
+        db.add_documents(documents)
 
-    query = "What assumptions are made about Lipschitzness / smoothness of the loss?"
+    # PubMed dataset is larger and more variable, so we stream and add incrementally to avoid memory issues
+    print(f"Streaming {N_PER_DATASET} PubMed papers")
+    ds2 = load_dataset("common-pile/pubmed", split="train", streaming=True)
+    for row in islice(ds2, N_PER_DATASET):
+        text = row.get("text") or ""
+        if not text.strip():
+            continue
+        chunks = splitter.split_text(text)
+        documents = [
+            Document(
+                page_content=c,
+                metadata={
+                    "dataset": "PubMed",
+                    "pmid": row.get("id"),
+                }
+            )
+            for c in chunks
+        ]
+        db.add_documents(documents)
+
+    # -------- Query --------
+    query = "What assumptions are made about Lipschitz continuity in optimization?"
     results = db.similarity_search(query, k=3)
 
-    print(f"\nQuery: {query}\nTop Results:")
+    print(f"Query: {query}\n")
     for r in results:
-        title = (r.metadata.get("title") or "")[:120]
-        pid = r.metadata.get("paper_id")
-        ci = r.metadata.get("chunk_index")
-        snippet = r.page_content[:250].replace("\n", " ")
-        print(f"- paper_id={pid} chunk={ci} title={title!r}")
-        print(f"  snippet: {snippet}...\n")
+        print(f"[{r.metadata.get('dataset')}]")
+        print(r.page_content[:250].replace("\n", " "))
+        print()
 
 def image_description_proof(image_path):
     llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash")
@@ -106,6 +100,7 @@ if __name__ == "__main__":
     load_dotenv()
     if not os.getenv("GOOGLE_API_KEY"):
         raise RuntimeError("❌ Error: GOOGLE_API_KEY not found! Make sure your .env is set.")
-    print("✅ API Key found.")
+    else:
+        print("✅ API Key found.")
     check_llm()
     run_vector_proof()
