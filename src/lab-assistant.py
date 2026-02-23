@@ -10,11 +10,10 @@ from langchain_core.messages import HumanMessage
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
 
-PERSIST_DIR = "./chroma_db_pes2ox"
+# MVP config
 CHUNK_SIZE_TOKENS = 800
 CHUNK_OVERLAP_TOKENS = 120 
-N_PER_DATASET = 1000
-
+N_PER_DATASET = 200
 
 def build_splitter():
     return RecursiveCharacterTextSplitter.from_tiktoken_encoder(
@@ -33,7 +32,7 @@ def run_vector_proof():
     print("\n Building Vector Store")
     splitter = build_splitter()
     embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-    db = Chroma( persist_directory=PERSIST_DIR, embedding_function=embeddings)
+    db = Chroma(embedding_function=embeddings)
 
     # Pes2oX dataset is smaller and more consistent, so we can stream and add in one pass
     print(f"Streaming {N_PER_DATASET} Pes2oX papers")
@@ -75,7 +74,26 @@ def run_vector_proof():
         ]
         db.add_documents(documents)
 
-    # -------- Query --------
+    print(f"Streaming {N_PER_DATASET} COREX-18 papers...")
+    ds3 = load_dataset("laion/COREX-18text", split="train", streaming=True)
+    for row in islice(ds3, N_PER_DATASET):
+        text = row.get("text") or ""
+        if not text.strip():
+            continue
+        chunks = splitter.split_text(text)
+        documents = [
+            Document(
+                page_content=c,
+                metadata={
+                    "dataset": "COREX-18",
+                    "paper_id": row.get("id"),
+                }
+            )
+            for c in chunks
+        ]
+        db.add_documents(documents)
+        
+    # Query
     query = "What assumptions are made about Lipschitz continuity in optimization?"
     results = db.similarity_search(query, k=3)
 
@@ -99,7 +117,7 @@ def image_description_proof(image_path):
 if __name__ == "__main__":
     load_dotenv()
     if not os.getenv("GOOGLE_API_KEY"):
-        raise RuntimeError("❌ Error: GOOGLE_API_KEY not found! Make sure your .env is set.")
+        raise RuntimeError("❌ Error: GOOGLE_API_KEY not found!")
     else:
         print("✅ API Key found.")
     check_llm()
