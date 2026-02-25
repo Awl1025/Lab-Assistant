@@ -6,7 +6,7 @@ verify results. It will be an acting proofreader of lab imagery to ensure work a
 
 ### Provider Choice: 
 
-**Generation:** Google Gemini (model="gemini-2.0-flash", temperature=X)
+**Generation:** Google Gemini (model="gemini-2.5-flash", temperature=X)
 
 **Embeddings:** HuggingFace (model="sentence-transformers/all-MiniLM-L6-v2")
 
