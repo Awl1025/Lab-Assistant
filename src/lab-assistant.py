@@ -24,7 +24,7 @@ def build_splitter():
 
 def check_llm():
     print("\nTesting Gemini Connection")
-    llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0)
+    llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
     res = llm.invoke("Infrastructure check: Are you online?")
     print(f"Gemini Response: {res.content}")
 
@@ -104,7 +104,7 @@ def run_vector_proof():
         print()
 
 def image_description_proof(image_path):
-    llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash")
+    llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash")
     try:
         with open(image_path, "rb") as img_file:
             img_data = img_file.read()
