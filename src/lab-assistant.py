@@ -13,7 +13,7 @@ from langchain_huggingface import HuggingFaceEmbeddings
 # MVP config
 CHUNK_SIZE_TOKENS = 800
 CHUNK_OVERLAP_TOKENS = 120 
-N_PER_DATASET = 200
+N_PER_DATASET = 20
 
 def build_splitter():
     return RecursiveCharacterTextSplitter.from_tiktoken_encoder(
